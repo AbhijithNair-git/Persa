@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import mongoose, { Mongoose } from 'mongoose';
 
 const MONGODB_URL = process.env.MONGODB_URL;
@@ -7,18 +9,19 @@ interface MongooseConnection {
   promise: Promise<Mongoose> | null;
 }
 
-let cached: MongooseConnection = (global as any).mongoose
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cached: any = (global as any).mongoose;
 
-if(!cached) {
+if (!cached) {
   cached = (global as any).mongoose = { 
     conn: null, promise: null 
   }
 }
 
 export const connectToDatabase = async () => {
-  if(cached.conn) return cached.conn;
+  if (cached.conn) return cached.conn;
 
-  if(!MONGODB_URL) throw new Error('Missing MONGODB_URL');
+  if (!MONGODB_URL) throw new Error('Missing MONGODB_URL');
 
   cached.promise = 
     cached.promise || 
