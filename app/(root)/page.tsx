@@ -1,6 +1,6 @@
 "use client"; // Ensures this file is treated as a client component
 
-import { UserButton } from "@clerk/nextjs";
+// import { UserButton } from "@clerk/nextjs";
 import React from "react";
 import { useRouter } from "next/navigation";
 
