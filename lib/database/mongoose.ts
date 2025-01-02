@@ -1,21 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+// Remove eslint-disable for @typescript-eslint/no-explicit-any as it is no longer needed
 import mongoose, { Mongoose } from 'mongoose';
 
 const MONGODB_URL = process.env.MONGODB_URL;
 
-interface MongooseConnection {
-  conn: Mongoose | null;
-  promise: Promise<Mongoose> | null;
-}
+// Removed MongooseConnection interface as it is not used anywhere
+// interface MongooseConnection {
+//   conn: Mongoose | null;
+//   promise: Promise<Mongoose> | null;
+// }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cached: any = (global as any).mongoose;
+let cached: { conn: Mongoose | null, promise: Promise<Mongoose> | null } = (global as any).mongoose;
 
 if (!cached) {
   cached = (global as any).mongoose = { 
     conn: null, promise: null 
-  }
+  };
 }
 
 export const connectToDatabase = async () => {
@@ -27,9 +26,9 @@ export const connectToDatabase = async () => {
     cached.promise || 
     mongoose.connect(MONGODB_URL, { 
       dbName: 'Persa', bufferCommands: false 
-    })
+    });
 
   cached.conn = await cached.promise;
 
   return cached.conn;
-}
+};
