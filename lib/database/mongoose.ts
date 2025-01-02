@@ -1,4 +1,5 @@
-// Remove eslint-disable for @typescript-eslint/no-explicit-any as it is no longer needed
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import mongoose, { Mongoose } from 'mongoose';
 
 const MONGODB_URL = process.env.MONGODB_URL;
@@ -9,6 +10,7 @@ const MONGODB_URL = process.env.MONGODB_URL;
 //   promise: Promise<Mongoose> | null;
 // }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cached: { conn: Mongoose | null, promise: Promise<Mongoose> | null } = (global as any).mongoose;
 
 if (!cached) {
