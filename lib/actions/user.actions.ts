@@ -5,18 +5,43 @@ import User from "../database/models/user.model";
 import { connectToDatabase } from "../database/mongoose";
 import { handleError, checkSubscriptionValidity } from "../utils";
 
+
 // CREATE
-export async function createUser(user: { clerkId: string; email: string; username: string; subscriptionType: "monthly" | "yearly" }) {
+export async function createUser(user: {
+  clerkId: string;
+  email: string;
+  username: string;
+  photo: string;
+  firstName: string;
+  lastName: string;
+  subscription: { 
+    type: "monthly" | "yearly";  // Ensuring the type is restricted to monthly or yearly
+    startDate: Date;
+    endDate: Date;
+  };
+}) {
   try {
     await connectToDatabase();
 
-    const newUser = await User.create(user);
+    // Creating a new user with Clerk data and MongoDB schema
+    const newUser = await User.create({
+      clerkId: user.clerkId,
+      email: user.email,
+      username: user.username,
+      photo: user.photo,
+      firstName: user.firstName || "",  // Provide a fallback for null/undefined
+      lastName: user.lastName || "",    // Provide a fallback for null/undefined
+      subscription: user.subscription, // Pass the entire subscription object
+    });
 
-    return JSON.parse(JSON.stringify(newUser));
+    return JSON.parse(JSON.stringify(newUser)); // Returning a clean object
   } catch (error) {
-    handleError(error);
+    handleError(error); // Handle any errors
   }
 }
+
+
+
 
 // READ
 export async function getUserById(clerkId: string) {
@@ -34,21 +59,35 @@ export async function getUserById(clerkId: string) {
 }
 
 // UPDATE
-export async function updateUser(clerkId: string, updates: { subscriptionType?: "monthly" | "yearly"; profileUpdates?: Record<string, unknown> }) {
+export async function updateUser(
+  clerkId: string,
+  updates: { 
+    firstName?: string; 
+    lastName?: string; 
+    username?: string; 
+    photo?: string;
+    subscriptionType?: "monthly" | "yearly"; // Optional field for subscription
+    profileUpdates?: Record<string, unknown>; // Optional field for additional profile updates
+  }
+) {
   try {
     await connectToDatabase();
 
-    const updatedUser = await User.findOneAndUpdate({ clerkId }, updates, {
-      new: true,
-    });
+    const updatedUser = await User.findOneAndUpdate(
+      { clerkId }, 
+      updates, 
+      { new: true } // Return the updated user document
+    );
 
     if (!updatedUser) throw new Error("User update failed");
 
-    return JSON.parse(JSON.stringify(updatedUser));
+    return JSON.parse(JSON.stringify(updatedUser)); // Clean object to remove Mongoose metadata
   } catch (error) {
-    handleError(error);
+    handleError(error); // Handle any errors
   }
 }
+
+
 
 // DELETE
 export async function deleteUser(clerkId: string) {
