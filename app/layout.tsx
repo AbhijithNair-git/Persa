@@ -25,11 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider afterSignOutUrl="/sign-in" appearance={{  //default / was updated to /sign-in
+    <ClerkProvider afterSignOutUrl="/" appearance={{
       variables: { colorPrimary: '#001e3a' }
     }}>
       <html lang="en">
         <body className={cn("font-inter antialiased", inter.variable)}>
+        
           {children}
         </body>
       </html>
