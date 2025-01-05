@@ -3,12 +3,15 @@ import { Document, Schema, model, models } from "mongoose";
 export interface ITask {
   title: string;
   completed: boolean;
+  dueDate: Date; // Due date and time for the task
   reminder?: {
-    date: Date; // Reminder date
-    note: string; // Optional note for the reminder
+    type: "specific" | "daily" | "weekly"; // Reminder type
+    timeBefore?: number; // Time in minutes before due date for reminder (if 'specific')
+    note?: string; // Optional note for the reminder
   };
-  subtasks?: ITask[]; // Nested subtasks
+  subtasks?: { title: string; completed: boolean }[]; // One level of subtasks
 }
+
 
 export interface ITodo extends Document {
   userId: string; // Reference to the user
@@ -18,11 +21,18 @@ export interface ITodo extends Document {
 const TaskSchema = new Schema<ITask>({
   title: { type: String, required: true },
   completed: { type: Boolean, default: false },
+  dueDate: { type: Date, required: true },
   reminder: {
-    date: { type: Date }, // Optional reminder date
-    note: { type: String }, // Optional reminder note
+    type: { type: String, enum: ["specific", "daily", "weekly"], required: false },
+    timeBefore: { type: Number, required: function () { return this.reminder?.type === "specific"; } },
+    note: { type: String },
   },
-  subtasks: [{ type: Schema.Types.Mixed }], // Nested subtasks
+  subtasks: [
+    {
+      title: { type: String, required: true },
+      completed: { type: Boolean, default: false },
+    },
+  ],
 });
 
 const TodoSchema = new Schema<ITodo>({
