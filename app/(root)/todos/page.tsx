@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash } from "lucide-react";
 
 const TodosPage = () => {
@@ -133,7 +133,8 @@ const TodosPage = () => {
           </Button>
         </DialogTrigger>
         <DialogContent>
-          <h2 className="text-lg font-semibold text-black">Add New Todo</h2>
+        <DialogTitle>Add New Todo</DialogTitle>
+          {/* <h2 className="text-lg font-semibold text-black">Add New Todo</h2> */}
           <Input placeholder="Enter task title" className="mt-4 mb-2" />
           <Button className="w-full">Add Task</Button>
         </DialogContent>
