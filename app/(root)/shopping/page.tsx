@@ -1,18 +1,9 @@
-// import React from 'react'
-
-// const ShoppingPage = () => {
-//   return (
-//     <div>
-//       ShoppingPage
-//     </div>
-//   )
-// }
-
-// export default ShoppingPage
-
 'use client';
 
 import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
@@ -108,13 +99,14 @@ export default function ShoppingPage() {
         </div>
 
         <Dialog>
-          <DialogTrigger>
-            <button
-              className="fixed bottom-6 right-6 bg-red-500 text-white w-14 h-14 rounded-full shadow-lg hover:bg-red-600 flex justify-center items-center text-3xl"
-            >
-              +
-            </button>
-          </DialogTrigger>
+        <DialogTrigger asChild>
+          <Button
+            variant="default"
+            className="fixed bottom-6 right-6 rounded-full h-12 w-12 p-0 bg-red-600 text-white"
+          >
+            <Plus size={24} />
+          </Button>
+        </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Item</DialogTitle>
