@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { createTask, updateTask, deleteTask, getTaskById } from "@/lib/actions/task.actions";
-import { headers } from "next/headers";
+// import { headers } from "next/headers";
 
 // CREATE Task
 export async function POST(req: Request) {
