@@ -1,7 +1,9 @@
 "use server";
 
 import { NextResponse } from "next/server";
-import { createTask, updateTask, deleteTask, getTaskById } from "@/lib/actions/task.actions";
+import { createTask,  getTaskById } from "@/lib/actions/task.actions";
+// import { updateTask, deleteTask, } from "@/lib/actions/task.actions";
+
 // import { headers } from "next/headers";
 
 // CREATE Task
@@ -31,32 +33,32 @@ export async function POST(req: Request) {
 
 
 
-// UPDATE Task
-export async function PUT(req: Request) {
-  const body = await req.json();
-  const { taskId, updates } = body;
+// // UPDATE Task
+// export async function PUT(req: Request) {
+//   const body = await req.json();
+//   const { taskId, updates } = body;
 
-  try {
-    const updatedTask = await updateTask(taskId, updates);
-    return NextResponse.json({ message: "Task updated successfully", task: updatedTask });
-  } catch (error) {
-    console.error("Error updating task:", error);
-    return new NextResponse("Error updating task", { status: 500 });
-  }
-}
+//   try {
+//     const updatedTask = await updateTask(taskId, updates);
+//     return NextResponse.json({ message: "Task updated successfully", task: updatedTask });
+//   } catch (error) {
+//     console.error("Error updating task:", error);
+//     return new NextResponse("Error updating task", { status: 500 });
+//   }
+// }
 
-// DELETE Task
-export async function DELETE(req: Request) {
-  const { taskId } = await req.json();
+// // DELETE Task
+// export async function DELETE(req: Request) {
+//   const { taskId } = await req.json();
 
-  try {
-    const deletedTask = await deleteTask(taskId);
-    return NextResponse.json({ message: "Task deleted successfully", task: deletedTask });
-  } catch (error) {
-    console.error("Error deleting task:", error);
-    return new NextResponse("Error deleting task", { status: 500 });
-  }
-}
+//   try {
+//     const deletedTask = await deleteTask(taskId);
+//     return NextResponse.json({ message: "Task deleted successfully", task: deletedTask });
+//   } catch (error) {
+//     console.error("Error deleting task:", error);
+//     return new NextResponse("Error deleting task", { status: 500 });
+//   }
+// }
 
 // GET Task by ID
 export async function GET(req: Request) {

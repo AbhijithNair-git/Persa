@@ -20,8 +20,8 @@ import { Plus } from "lucide-react";
 import {
   createTask,
   getTasks,
-  updateTask,
-  deleteTask,
+  // updateTask,
+  // deleteTask,
 } from "@/lib/actions/task.actions";
 
 const TodosPage = () => {
@@ -154,26 +154,13 @@ const TodosPage = () => {
     ));
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteTask(id);
-    setTodos((prev) => prev.filter((todo) => todo._id !== id)); // Update local state after deletion
-  };
+  // const handleDelete = async (id: string) => {
+  //   await deleteTask(id);
+  //   setTodos((prev) => prev.filter((todo) => todo._id !== id)); // Update local state after deletion
+  // };
 
 
-  const handleUpdateTask = async (taskId: string, updatedData: any) => {
-    try {
-      const updatedTask = await updateTask(taskId, updatedData);
-      console.log("Task updated successfully:", updatedTask);
-      // Optionally, update the local state with the updated task
-      setTodos((prev) =>
-        prev.map((task) =>
-          task._id === taskId ? { ...task, ...updatedData } : task
-        )
-      );
-    } catch (error) {
-      console.error("Error updating task:", error);
-    }
-  };
+  
 
 
 

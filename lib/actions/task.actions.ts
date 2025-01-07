@@ -90,43 +90,43 @@ export async function createTask(task: {
 
 
 // UPDATE Task (to mark it completed or update reminder)
-export async function updateTask(taskId: string, updates: Partial<{ 
-  title: string; 
-  completed: boolean; 
-  reminder?: { 
-    date: Date; 
-    note: string; 
-    frequency: "daily" | "weekly" | "hourly"; 
-  }; 
-  subtasks?: { title: string; completed: boolean }[]; 
-}>) {
-  try {
-    await connectToDatabase();
+// export async function updateTask(taskId: string, updates: Partial<{ 
+//   title: string; 
+//   completed: boolean; 
+//   reminder?: { 
+//     date: Date; 
+//     note: string; 
+//     frequency: "daily" | "weekly" | "hourly"; 
+//   }; 
+//   subtasks?: { title: string; completed: boolean }[]; 
+// }>) {
+//   try {
+//     await connectToDatabase();
 
-    const updatedTask = await Task.findByIdAndUpdate(taskId, updates, { new: true });
+//     const updatedTask = await Task.findByIdAndUpdate(taskId, updates, { new: true });
 
-    if (!updatedTask) throw new Error("Task not found");
+//     if (!updatedTask) throw new Error("Task not found");
 
-    return JSON.parse(JSON.stringify(updatedTask));
-  } catch (error) {
-    handleError(error);
-  }
-}
+//     return JSON.parse(JSON.stringify(updatedTask));
+//   } catch (error) {
+//     handleError(error);
+//   }
+// }
 
-// DELETE Task
-export async function deleteTask(taskId: string) {
-  try {
-    await connectToDatabase();
+// // DELETE Task
+// export async function deleteTask(taskId: string) {
+//   try {
+//     await connectToDatabase();
 
-    const deletedTask = await Task.findByIdAndDelete(taskId);
+//     const deletedTask = await Task.findByIdAndDelete(taskId);
 
-    if (!deletedTask) throw new Error("Task not found");
+//     if (!deletedTask) throw new Error("Task not found");
 
-    return JSON.parse(JSON.stringify(deletedTask));
-  } catch (error) {
-    handleError(error);
-  }
-}
+//     return JSON.parse(JSON.stringify(deletedTask));
+//   } catch (error) {
+//     handleError(error);
+//   }
+// }
 
 // GET Task by ID
 export async function getTaskById(taskId: string) {
@@ -149,7 +149,8 @@ export async function getTasks(userId: string, status: string) {
     console.log("Database connected successfully.");
 
     // Build query to fetch all tasks for the user, no status filter applied
-    const query: any = { userId };
+    // const query: any = { userId };
+    const query: { userId: string } = { userId };
 
     // Fetch all tasks based on the userId, ignoring status
     const tasks = await Task.find(query);
