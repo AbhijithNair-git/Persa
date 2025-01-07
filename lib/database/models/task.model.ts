@@ -21,10 +21,15 @@ export interface ITodo extends Document {
 const TaskSchema = new Schema<ITask>({
   title: { type: String, required: true },
   completed: { type: Boolean, default: false },
-  dueDate: { type: Date, required: true },
+  dueDate: { type: Date, required: true }, // Always required
   reminder: {
     type: { type: String, enum: ["specific", "daily", "weekly"], required: false },
-    timeBefore: { type: Number, required: function () { return this.reminder?.type === "specific"; } },
+    timeBefore: {
+      type: Number,
+      required: function () {
+        return this.reminder?.type === "specific";
+      },
+    },
     note: { type: String },
   },
   subtasks: [
@@ -35,10 +40,13 @@ const TaskSchema = new Schema<ITask>({
   ],
 });
 
-const TodoSchema = new Schema<ITodo>({
-  userId: { type: String, required: true }, // User ID reference
-  tasks: [TaskSchema], // Array of tasks using TaskSchema
-}, { timestamps: true });
+const TodoSchema = new Schema<ITodo>(
+  {
+    userId: { type: String, required: true },
+    tasks: [TaskSchema],
+  },
+  { timestamps: true }
+);
 
 const Todo = models?.Todo || model<ITodo>("Todo", TodoSchema);
 

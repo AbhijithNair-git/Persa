@@ -5,14 +5,13 @@ import Task from "../database/models/task.model"; // Assuming Task model is defi
 import { handleError } from "../utils";
 import Todo from "../database/models/task.model"; // Ensure proper import
 
-// CREATE Task
 export async function createTask(task: {
   userId: string;
   title: string;
   completed: boolean;
-  dueDate: Date;
+  dueDate: string; // Always required and in ISO format
   reminder?: {
-    date: Date;
+    date: string; // Required to be ISO string if present
     note: string;
     frequency: "daily" | "weekly" | "hourly";
   };
@@ -21,30 +20,74 @@ export async function createTask(task: {
   try {
     await connectToDatabase();
 
-    // Find or create a Todo document for the user
+    // Validate required fields
+    if (!task.userId || !task.title || !task.dueDate) {
+      throw new Error("Missing required fields: userId, title, or dueDate.");
+    }
+
+    // Validate date fields
+    const dueDate = new Date(task.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      throw new Error("Invalid dueDate. Must be a valid ISO string.");
+    }
+
+    if (task.reminder) {
+      const reminderDate = new Date(task.reminder.date);
+      if (isNaN(reminderDate.getTime())) {
+        throw new Error("Invalid reminder.date. Must be a valid ISO string.");
+      }
+    }
+
+    // Validate subtasks
+    if (task.subtasks) {
+      task.subtasks.forEach((subtask, index) => {
+        if (!subtask.title) {
+          throw new Error(`Subtask at index ${index} is missing a title.`);
+        }
+      });
+    }
+
     const todo = await Todo.findOneAndUpdate(
       { userId: task.userId },
       { $setOnInsert: { userId: task.userId, tasks: [] } },
       { new: true, upsert: true }
     );
 
-    // Push the new task to the tasks array
-    todo.tasks.push({
+    if (!todo) {
+      throw new Error("Failed to retrieve or create Todo document.");
+    }
+
+    const newTask = {
       title: task.title,
       completed: task.completed,
-      dueDate: task.dueDate,
-      reminder: task.reminder,
-      subtasks: task.subtasks, // Ensure it's just one level
-    });
+      dueDate,
+      reminder: task.reminder
+        ? {
+            ...task.reminder,
+            date: new Date(task.reminder.date),
+          }
+        : undefined,
+      subtasks: task.subtasks || [],
+    };
+
+    todo.tasks.push(newTask);
 
     await todo.save();
 
-    // Return the newly added task
-    return todo.tasks[todo.tasks.length - 1];
-  } catch (error) {
-    handleError(error);
+    return newTask;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error in createTask:", error.message);
+      throw new Error(`Failed to create task: ${error.message}`);
+    } else {
+      console.error("Unknown error occurred:", error);
+      throw new Error("Failed to create task: Unknown error");
+    }
   }
 }
+
+
+
 
 // UPDATE Task (to mark it completed or update reminder)
 export async function updateTask(taskId: string, updates: Partial<{ 

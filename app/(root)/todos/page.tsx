@@ -34,14 +34,14 @@ const TodosPage = () => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   // State to manage which tasks are expanded
-  const [expandedTasks, setExpandedTasks] = useState<{ [key: string]: boolean }>({});
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Fetch tasks on initial load
     const fetchTasks = async () => {
       try {
         const tasks = await getTasks(userId, status);
-        console.log("Tasks fetched in fetchTasks:", tasks);
+        console.log("Tasks fetched:", tasks);
         setTodos(tasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
@@ -49,52 +49,75 @@ const TodosPage = () => {
     };
 
     fetchTasks();
-  }, [userId, status]); // Rerun the effect when userId or status changes
+  }, [userId, status]);
 
   const handleSelectChange = (value: "all" | "completed" | "pending") => {
     setStatus(value);
   };
 
   const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent form submission from reloading the page
-
-    if (taskTitle.trim() === "") return;
-
-    // Map string array to object array
+    e.preventDefault();
+  
+    if (taskTitle.trim() === "" || dueDate.trim() === "") {
+      console.error("Task title or dueDate is empty");
+      return;
+    }
+  
     const formattedSubtasks = subtasks.map((subtask) => ({
       title: subtask,
-      completed: false, // Set default status as not completed
+      completed: false,
     }));
-
-    const newTask = await createTask({
-      title: taskTitle,
-      subtasks: formattedSubtasks, // Pass the correctly formatted subtasks
-      userId,
-      completed: isCompleted,
-      dueDate: new Date(dueDate), // Ensure the date is correctly formatted
-    });
-
-    setTodos((prev) => [...prev, newTask]);
-    setTaskTitle("");
-    setSubtasks([]);
-    setDueDate("");
-    setIsCompleted(false);
+  
+    try {
+      await createTask({
+        title: taskTitle,
+        subtasks: formattedSubtasks,
+        userId,
+        completed: isCompleted,
+        dueDate: new Date(dueDate).toISOString(),
+      });
+  
+      // Re-fetch tasks after adding a new task
+      const updatedTasks = await getTasks(userId, status);
+      setTodos(updatedTasks);
+  
+      // Reset form fields
+      setTaskTitle("");
+      setSubtasks([]);
+      setDueDate("");
+      setIsCompleted(false);
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
   };
+  
 
-  // Function to handle toggling the visibility of subtasks
+  // Toggle task expansion
   const toggleSubtasks = (taskId: string) => {
-    setExpandedTasks((prev) => ({
-      ...prev,
-      [taskId]: !prev[taskId], // Toggle the task's expanded state
-    }));
+    setExpandedTasks((prev) => {
+      const newExpandedTasks = new Set(prev);
+      if (newExpandedTasks.has(taskId)) {
+        newExpandedTasks.delete(taskId); // Collapse
+      } else {
+        newExpandedTasks.add(taskId); // Expand
+      }
+      return newExpandedTasks;
+    });
   };
 
-  // Function to render the list of tasks
+
+
   const renderTodos = () => {
-    return todos.map((taskList) => (
-      <div key={taskList._id} className="bg-white p-4 rounded-lg shadow-lg mb-6">
+
+    console.log("this is the thingggggggggggggggg Todos:", todos);
+
+
+    return todos.map((taskGroup: any) => (
+
+
+      <div key={taskGroup._id} className="bg-white p-4 rounded-lg shadow-lg mb-6">
         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Task Group</h3>
-        {taskList.tasks.map((task: any) => (
+        {taskGroup.tasks.map((task: any) => (
           <div key={task._id} className="bg-gray-50 p-4 rounded-lg shadow-sm mb-4">
             <div
               className="flex justify-between items-center mb-4 cursor-pointer"
@@ -110,12 +133,12 @@ const TodosPage = () => {
             </p>
 
             {/* Render subtasks if the task is expanded */}
-            {expandedTasks[task._id] && task.subtasks && (
+            {expandedTasks.has(task._id) && task.subtasks && (
               <div className="mt-4">
                 <h5 className="text-lg font-semibold text-gray-700 mb-2">Subtasks:</h5>
                 <div className="pl-4">
                   {task.subtasks.map((subtask: any) => (
-                    <div key={subtask._id} className="bg-gray-100 p-2 rounded-md mb-2">
+                    <div key={subtask._id || subtask.title} className="bg-gray-100 p-2 rounded-md mb-2">
                       <p className="text-gray-800">{subtask.title}</p>
                       <p className={`text-sm font-medium ${subtask.completed ? 'text-green-500' : 'text-red-500'}`}>
                         {subtask.completed ? "Completed" : "Incomplete"}
@@ -133,7 +156,7 @@ const TodosPage = () => {
 
   const handleDelete = async (id: string) => {
     await deleteTask(id);
-    setTodos((prev) => prev.filter((todo) => todo.id !== id)); // Update local state after deletion
+    setTodos((prev) => prev.filter((todo) => todo._id !== id)); // Update local state after deletion
   };
 
   return (

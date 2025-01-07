@@ -9,11 +9,15 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   try {
+    if (!body.dueDate) {
+      throw new Error("dueDate is required.");
+    }
+
     const newTask = await createTask({
       userId: body.userId,
       title: body.title,
       completed: body.completed,
-      dueDate: new Date(body.dueDate),
+      dueDate: new Date(body.dueDate).toISOString(), // Ensure dueDate is always ISO string
       reminder: body.reminder,
       subtasks: body.subtasks,
     });
@@ -24,6 +28,8 @@ export async function POST(req: Request) {
     return new NextResponse("Error creating task", { status: 500 });
   }
 }
+
+
 
 // UPDATE Task
 export async function PUT(req: Request) {
