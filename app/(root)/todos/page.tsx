@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,17 +56,17 @@ const TodosPage = () => {
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (taskTitle.trim() === "" || dueDate.trim() === "") {
       console.error("Task title or dueDate is empty");
       return;
     }
-  
+
     const formattedSubtasks = subtasks.map((subtask) => ({
       title: subtask,
       completed: false,
     }));
-  
+
     try {
       await createTask({
         title: taskTitle,
@@ -76,11 +75,11 @@ const TodosPage = () => {
         completed: isCompleted,
         dueDate: new Date(dueDate).toISOString(),
       });
-  
+
       // Re-fetch tasks after adding a new task
       const updatedTasks = await getTasks(userId, status);
       setTodos(updatedTasks);
-  
+
       // Reset form fields
       setTaskTitle("");
       setSubtasks([]);
@@ -90,7 +89,6 @@ const TodosPage = () => {
       console.error("Error creating task:", error);
     }
   };
-  
 
   // Toggle task expansion
   const toggleSubtasks = (taskId: string) => {
@@ -105,42 +103,59 @@ const TodosPage = () => {
     });
   };
 
-
-
   const renderTodos = () => {
-
     console.log("this is the thingggggggggggggggg Todos:", todos);
 
-
     return todos.map((taskGroup: any) => (
-
-
-      <div key={taskGroup._id} className="bg-white p-4 rounded-lg shadow-lg mb-6">
-        <h3 className="text-2xl font-semibold text-gray-800 mb-4">Task Group</h3>
+      <div
+        key={taskGroup._id}
+        className="bg-white p-4 rounded-lg shadow-lg mb-6"
+      >
+        <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+          Task Group
+        </h3>
         {taskGroup.tasks.map((task: any) => (
-          <div key={task._id} className="bg-gray-50 p-4 rounded-lg shadow-sm mb-4">
+          <div
+            key={task._id}
+            className="bg-gray-50 p-4 rounded-lg shadow-sm mb-4"
+          >
             <div
               className="flex justify-between items-center mb-4 cursor-pointer"
               onClick={() => toggleSubtasks(task._id)} // Toggle when clicking
             >
-              <h4 className="text-xl font-medium text-gray-900">{task.title}</h4>
+              <h4 className="text-xl font-medium text-gray-900">
+                {task.title}
+              </h4>
               <span className="text-sm text-gray-600">
                 Due: {new Date(task.dueDate).toLocaleDateString()}
               </span>
             </div>
-            <p className={`text-sm font-medium ${task.completed ? 'text-green-500' : 'text-red-500'}`}>
+            <p
+              className={`text-sm font-medium ${
+                task.completed ? "text-green-500" : "text-red-500"
+              }`}
+            >
               {task.completed ? "Completed" : "Incomplete"}
             </p>
 
             {/* Render subtasks if the task is expanded */}
             {expandedTasks.has(task._id) && task.subtasks && (
               <div className="mt-4">
-                <h5 className="text-lg font-semibold text-gray-700 mb-2">Subtasks:</h5>
+                <h5 className="text-lg font-semibold text-gray-700 mb-2">
+                  Subtasks:
+                </h5>
                 <div className="pl-4">
                   {task.subtasks.map((subtask: any) => (
-                    <div key={subtask._id || subtask.title} className="bg-gray-100 p-2 rounded-md mb-2">
+                    <div
+                      key={subtask._id || subtask.title}
+                      className="bg-gray-100 p-2 rounded-md mb-2"
+                    >
                       <p className="text-gray-800">{subtask.title}</p>
-                      <p className={`text-sm font-medium ${subtask.completed ? 'text-green-500' : 'text-red-500'}`}>
+                      <p
+                        className={`text-sm font-medium ${
+                          subtask.completed ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
                         {subtask.completed ? "Completed" : "Incomplete"}
                       </p>
                     </div>
@@ -158,11 +173,6 @@ const TodosPage = () => {
   //   await deleteTask(id);
   //   setTodos((prev) => prev.filter((todo) => todo._id !== id)); // Update local state after deletion
   // };
-
-
-  
-
-
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
