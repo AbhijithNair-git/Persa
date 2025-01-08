@@ -1,12 +1,9 @@
-"use server";
+// app/api/tasks/route.ts
 
 import { NextResponse } from "next/server";
-import { createTask,  getTaskById } from "@/lib/actions/task.actions";
-// import { updateTask, deleteTask, } from "@/lib/actions/task.actions";
+import { createTask, getTasks } from "@/lib/actions/task.actions";
 
-// import { headers } from "next/headers";
-
-// CREATE Task
+// Create task route
 export async function POST(req: Request) {
   const body = await req.json();
 
@@ -19,7 +16,7 @@ export async function POST(req: Request) {
       userId: body.userId,
       title: body.title,
       completed: body.completed,
-      dueDate: new Date(body.dueDate).toISOString(), // Ensure dueDate is always ISO string
+      dueDate: new Date(body.dueDate).toISOString(),
       reminder: body.reminder,
       subtasks: body.subtasks,
     });
@@ -31,44 +28,20 @@ export async function POST(req: Request) {
   }
 }
 
-
-
-// // UPDATE Task
-// export async function PUT(req: Request) {
-//   const body = await req.json();
-//   const { taskId, updates } = body;
-
-//   try {
-//     const updatedTask = await updateTask(taskId, updates);
-//     return NextResponse.json({ message: "Task updated successfully", task: updatedTask });
-//   } catch (error) {
-//     console.error("Error updating task:", error);
-//     return new NextResponse("Error updating task", { status: 500 });
-//   }
-// }
-
-// // DELETE Task
-// export async function DELETE(req: Request) {
-//   const { taskId } = await req.json();
-
-//   try {
-//     const deletedTask = await deleteTask(taskId);
-//     return NextResponse.json({ message: "Task deleted successfully", task: deletedTask });
-//   } catch (error) {
-//     console.error("Error deleting task:", error);
-//     return new NextResponse("Error deleting task", { status: 500 });
-//   }
-// }
-
-// GET Task by ID
+// Get tasks route
 export async function GET(req: Request) {
-  const { taskId } = await req.json();
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("userId");
+  const status = url.searchParams.get("status");
+
+  if (!userId || !status) {
+    return new NextResponse("Missing required query parameters", { status: 400 });
+  }
 
   try {
-    const task = await getTaskById(taskId);
-    return NextResponse.json({ task });
+    const tasks = await getTasks(userId, status);
+    return NextResponse.json({ tasks });
   } catch (error) {
-    console.error("Error fetching task:", error);
-    return new NextResponse("Error fetching task", { status: 500 });
+    return new NextResponse("Error getting tasks", { status: 500 });
   }
 }

@@ -1,27 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import {Dialog,DialogContent,DialogTitle,DialogTrigger,} from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import {
-  createTask,
-  getTasks,
-  // updateTask,
-  // deleteTask,
-} from "@/lib/actions/task.actions";
+import axios from "axios";
 
 const TodosPage = () => {
   const [todos, setTodos] = useState<any[]>([]);
@@ -35,20 +19,21 @@ const TodosPage = () => {
   // State to manage which tasks are expanded
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
+  // Fetch tasks when the component mounts or the status changes
   useEffect(() => {
-    // Fetch tasks on initial load
     const fetchTasks = async () => {
       try {
-        const tasks = await getTasks(userId, status);
-        console.log("Tasks fetched:", tasks);
-        setTodos(tasks);
+        const response = await axios.get("/api/tasks", {
+          params: { userId, status },
+        });
+        setTodos(response.data.tasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
       }
     };
 
     fetchTasks();
-  }, [userId, status]);
+  }, [status, userId]);
 
   const handleSelectChange = (value: "all" | "completed" | "pending") => {
     setStatus(value);
@@ -68,7 +53,7 @@ const TodosPage = () => {
     }));
 
     try {
-      await createTask({
+      await axios.post("/api/tasks", {
         title: taskTitle,
         subtasks: formattedSubtasks,
         userId,
@@ -77,8 +62,10 @@ const TodosPage = () => {
       });
 
       // Re-fetch tasks after adding a new task
-      const updatedTasks = await getTasks(userId, status);
-      setTodos(updatedTasks);
+      const response = await axios.get("/api/tasks", {
+        params: { userId, status },
+      });
+      setTodos(response.data.tasks);
 
       // Reset form fields
       setTaskTitle("");
@@ -104,8 +91,6 @@ const TodosPage = () => {
   };
 
   const renderTodos = () => {
-    console.log("this is the thingggggggggggggggg Todos:", todos);
-
     return todos.map((taskGroup: any) => (
       <div
         key={taskGroup._id}
@@ -168,11 +153,6 @@ const TodosPage = () => {
       </div>
     ));
   };
-
-  // const handleDelete = async (id: string) => {
-  //   await deleteTask(id);
-  //   setTodos((prev) => prev.filter((todo) => todo._id !== id)); // Update local state after deletion
-  // };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
