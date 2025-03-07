@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter } from 'next/font/google';
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -8,10 +8,12 @@ import "./globals.css";
 
 // Configure the Inter font with desired subsets and weights
 const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-inter",
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap', // Ensures text remains visible during font loading
 });
+
 
 
 export const metadata: Metadata = {
@@ -21,16 +23,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <ClerkProvider afterSignOutUrl="/" appearance={{
-      variables: { colorPrimary: '#001e3a' }
-    }}>
-      <html lang="en">
-        <body className={cn("font-inter antialiased", inter.variable)}>
-        
+    <ClerkProvider
+      afterSignOutUrl="/"
+      appearance={{ variables: { colorPrimary: '#001e3a' } }}
+    >
+      <html lang="en" className={inter.variable} suppressHydrationWarning>
+        <body className="font-inter antialiased" suppressHydrationWarning>
           {children}
         </body>
       </html>

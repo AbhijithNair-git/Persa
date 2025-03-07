@@ -1,53 +1,56 @@
-import { Document, Schema, model, models } from "mongoose";
+import { Document, Schema, model, models, Types } from "mongoose";
 
-export interface ITask {
-  title: string;
-  completed: boolean;
-  dueDate: Date; // Due date and time for the task
-  reminder?: {
-    type: "specific" | "daily" | "weekly"; // Reminder type
-    timeBefore?: number; // Time in minutes before due date for reminder (if 'specific')
-    note?: string; // Optional note for the reminder
-  };
-  subtasks?: { title: string; completed: boolean }[]; // One level of subtasks
+export interface ISubTodo {
+  _id: Types.ObjectId; // Unique ID for each subtask
+  content: string;
+  status: "completed" | "pending" | "incomplete";
 }
-
 
 export interface ITodo extends Document {
-  userId: string; // Reference to the user
-  tasks: ITask[]; // Array of tasks
+  userId: string;
+  remainderType: "daily" | "weekly" | "monthly";
+  status: "completed" | "pending" | "incomplete";
+  mainContent: string;
+  hasSubTodo: boolean;
+  subTodos?: ISubTodo[]; // Array of one-level subtasks
+  lastDate: Date;
+  timeToRemind: string;
 }
 
-const TaskSchema = new Schema<ITask>({
-  title: { type: String, required: true },
-  completed: { type: Boolean, default: false },
-  dueDate: { type: Date, required: true }, // Always required
-  reminder: {
-    type: { type: String, enum: ["specific", "daily", "weekly"], required: false },
-    timeBefore: {
-      type: Number,
-      required: function () {
-        return this.reminder?.type === "specific";
-      },
+const SubTodoSchema = new Schema<ISubTodo>(
+  {
+    _id: { type: Schema.Types.ObjectId, auto: true }, // Ensure _id is generated automatically
+    content: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["completed", "pending", "incomplete"],
+      required: true,
     },
-    note: { type: String },
   },
-  subtasks: [
-    {
-      title: { type: String, required: true },
-      completed: { type: Boolean, default: false },
-    },
-  ],
-});
+  { timestamps: true }
+);
 
 const TodoSchema = new Schema<ITodo>(
   {
     userId: { type: String, required: true },
-    tasks: [TaskSchema],
+    remainderType: {
+      type: String,
+      enum: ["daily", "weekly", "monthly"],
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["completed", "pending", "incomplete"],
+      required: true,
+    },
+    mainContent: { type: String, required: true },
+    hasSubTodo: { type: Boolean, default: false },
+    subTodos: { type: [SubTodoSchema], default: [] }, // Default as an empty array
+    lastDate: { type: Date, required: true },
+    timeToRemind: { type: String, required: true },
   },
   { timestamps: true }
 );
 
 const Todo = models?.Todo || model<ITodo>("Todo", TodoSchema);
-
 export default Todo;

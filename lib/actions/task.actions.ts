@@ -1,167 +1,209 @@
 "use server";
 
 import { connectToDatabase } from "../database/mongoose";
-import Task from "../database/models/task.model"; // Assuming Task model is defined
+import Todo from "../database/models/task.model";
 import { handleError } from "../utils";
-import Todo from "../database/models/task.model"; // Ensure proper import
+import mongoose, { Types } from "mongoose";
+import { ITodo, ISubTodo } from "../database/models/task.model";
 
-export async function createTask(task: {
+/**
+ * Create a new Todo
+ */
+
+
+// the below TaskInput is the same as the one in the app/api/tasks/route.ts
+type TaskInput = {
   userId: string;
-  title: string;
-  completed: boolean;
-  dueDate: string; // Always required and in ISO format
-  reminder?: {
-    date: string; // Required to be ISO string if present
-    note: string;
-    frequency: "daily" | "weekly" | "hourly";
-  };
-  subtasks?: { title: string; completed: boolean }[];
-}) {
+  remainderType: "daily" | "weekly" | "monthly";
+  mainContent: string;
+  lastDate: Date;
+  timeToRemind: string;
+  status?: "completed" | "pending" | "incomplete";
+  hasSubTodo?: boolean;
+  subTodos?: ISubTodo[];
+};
+
+
+export async function createTask(todo: TaskInput) {
   try {
     await connectToDatabase();
 
-    // Validate required fields
-    if (!task.userId || !task.title || !task.dueDate) {
-      throw new Error("Missing required fields: userId, title, or dueDate.");
+    if (!todo.userId || !todo.mainContent || !todo.lastDate || !todo.timeToRemind) {
+      throw new Error("Missing required fields: userId, mainContent, lastDate, or timeToRemind.");
     }
 
-    // Validate date fields
-    const dueDate = new Date(task.dueDate);
-    if (isNaN(dueDate.getTime())) {
-      throw new Error("Invalid dueDate. Must be a valid ISO string.");
+    const lastDate = new Date(todo.lastDate);
+    if (isNaN(lastDate.getTime())) {
+      throw new Error("Invalid lastDate. Must be a valid ISO string.");
     }
 
-    if (task.reminder) {
-      const reminderDate = new Date(task.reminder.date);
-      if (isNaN(reminderDate.getTime())) {
-        throw new Error("Invalid reminder.date. Must be a valid ISO string.");
-      }
-    }
+    // Create a new Mongoose document
+    const newTodo = new Todo({
+      userId: todo.userId,
+      remainderType: todo.remainderType,
+      mainContent: todo.mainContent,
+      lastDate,
+      timeToRemind: todo.timeToRemind,
+      status: todo.status || "incomplete",
+      hasSubTodo: todo.hasSubTodo || false,
+      subTodos: todo.subTodos || [],
+    });
 
-    // Validate subtasks
-    if (task.subtasks) {
-      task.subtasks.forEach((subtask, index) => {
-        if (!subtask.title) {
-          throw new Error(`Subtask at index ${index} is missing a title.`);
-        }
-      });
-    }
-
-    const todo = await Todo.findOneAndUpdate(
-      { userId: task.userId },
-      { $setOnInsert: { userId: task.userId, tasks: [] } },
-      { new: true, upsert: true }
-    );
-
-    if (!todo) {
-      throw new Error("Failed to retrieve or create Todo document.");
-    }
-
-    const newTask = {
-      title: task.title,
-      completed: task.completed,
-      dueDate,
-      reminder: task.reminder
-        ? {
-            ...task.reminder,
-            date: new Date(task.reminder.date),
-          }
-        : undefined,
-      subtasks: task.subtasks || [],
-    };
-
-    todo.tasks.push(newTask);
-
-    await todo.save();
-
-    return newTask;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error("Error in createTask:", error.message);
-      throw new Error(`Failed to create task: ${error.message}`);
-    } else {
-      console.error("Unknown error occurred:", error);
-      throw new Error("Failed to create task: Unknown error");
-    }
+    await newTodo.save();
+    return JSON.parse(JSON.stringify(newTodo)); // Convert to plain object for response
+  } catch (error) {
+    console.error("Error creating task:", error);
+    throw error; // Rethrow for proper error handling
   }
 }
 
-
-
-
-// UPDATE Task (to mark it completed or update reminder)
-// export async function updateTask(taskId: string, updates: Partial<{ 
-//   title: string; 
-//   completed: boolean; 
-//   reminder?: { 
-//     date: Date; 
-//     note: string; 
-//     frequency: "daily" | "weekly" | "hourly"; 
-//   }; 
-//   subtasks?: { title: string; completed: boolean }[]; 
-// }>) {
-//   try {
-//     await connectToDatabase();
-
-//     const updatedTask = await Task.findByIdAndUpdate(taskId, updates, { new: true });
-
-//     if (!updatedTask) throw new Error("Task not found");
-
-//     return JSON.parse(JSON.stringify(updatedTask));
-//   } catch (error) {
-//     handleError(error);
-//   }
-// }
-
-// // DELETE Task
-// export async function deleteTask(taskId: string) {
-//   try {
-//     await connectToDatabase();
-
-//     const deletedTask = await Task.findByIdAndDelete(taskId);
-
-//     if (!deletedTask) throw new Error("Task not found");
-
-//     return JSON.parse(JSON.stringify(deletedTask));
-//   } catch (error) {
-//     handleError(error);
-//   }
-// }
-
-// GET Task by ID
-export async function getTaskById(taskId: string) {
+/**
+ * Fetch all Todos by userId and optional status
+ */
+export async function getTasks(userId: string, status?: "completed" | "pending" | "incomplete") {
   try {
     await connectToDatabase();
 
-    const task = await Task.findById(taskId);
+    const query: { userId: string; status?: "completed" | "pending" | "incomplete" } = { userId };
+    if (status) query.status = status;
 
-    if (!task) throw new Error("Task not found");
+    const todos = await Todo.find(query);
+    return JSON.parse(JSON.stringify(todos));
+  } catch (error) {
+    console.error("Error fetching todos:", error);
+    return [];
+  }
+}
 
-    return JSON.parse(JSON.stringify(task));
+/**
+ * Fetch a single Todo by ID
+ */
+export async function getTaskById(todoId: Types.ObjectId) {
+  try {
+    await connectToDatabase();
+
+    if (!mongoose.Types.ObjectId.isValid(todoId)) {
+      throw new Error("Invalid todo ID");
+    }
+
+    const todo = await Todo.findById(todoId);
+    if (!todo) throw new Error("Todo not found");
+
+    return JSON.parse(JSON.stringify(todo));
   } catch (error) {
     handleError(error);
   }
 }
 
-export async function getTasks(userId: string, status: string) {
+/**
+ * Update a Todo
+ */
+export async function updateTask(todoId: Types.ObjectId, updatedData: Partial<ITodo>) {
   try {
     await connectToDatabase();
-    console.log("Database connected successfully.");
 
-    // Build query to fetch all tasks for the user, no status filter applied
-    // const query: any = { userId };
-    const query: { userId: string } = { userId };
+    if (!mongoose.Types.ObjectId.isValid(todoId)) {
+      throw new Error("Invalid todo ID");
+    }
 
-    // Fetch all tasks based on the userId, ignoring status
-    const tasks = await Task.find(query);
-    console.log("Fetched tasks from DB:", tasks);
+    const updatedTodo = await Todo.findByIdAndUpdate(todoId, updatedData, { new: true });
+    if (!updatedTodo) throw new Error("Todo not found");
 
-    return JSON.parse(JSON.stringify(tasks));
+    return JSON.parse(JSON.stringify(updatedTodo));
   } catch (error) {
-    console.error("Error fetching tasks:", error);
-    return []; // Return an empty array to avoid crashes
+    handleError(error);
   }
 }
 
+/**
+ * Delete a Todo
+ */
+export async function deleteTask(todoId: Types.ObjectId) {
+  try {
+    await connectToDatabase();
 
-  
+    if (!mongoose.Types.ObjectId.isValid(todoId)) {
+      throw new Error("Invalid todo ID");
+    }
+
+    const deletedTodo = await Todo.findByIdAndDelete(todoId);
+    if (!deletedTodo) throw new Error("Todo not found");
+
+    return JSON.parse(JSON.stringify(deletedTodo));
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Add a subTodo to a Todo
+ */
+export async function addSubTodo(todoId: Types.ObjectId, subTodo: Omit<ISubTodo, "_id">) {
+  try {
+    await connectToDatabase();
+
+    if (!mongoose.Types.ObjectId.isValid(todoId)) {
+      throw new Error("Invalid todo ID");
+    }
+
+    const todo = await Todo.findById(todoId);
+    if (!todo) throw new Error("Todo not found");
+
+    const newSubTodo: ISubTodo = {
+      _id: new Types.ObjectId(),
+      ...subTodo,
+    };
+
+    todo.subTodos.push(newSubTodo);
+    todo.hasSubTodo = true;
+    await todo.save();
+
+    return JSON.parse(JSON.stringify(todo));
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Update a subTodo
+ */
+export async function updateSubTodo(todoId: Types.ObjectId, subTodoId: Types.ObjectId, updatedSubTodo: Partial<ISubTodo>) {
+  try {
+    await connectToDatabase();
+
+    const todo = await Todo.findById(todoId);
+    if (!todo) throw new Error("Todo not found");
+
+    const subTodo = todo.subTodos.id(subTodoId);
+    if (!subTodo) throw new Error("SubTodo not found");
+
+    Object.assign(subTodo, updatedSubTodo);
+    await todo.save();
+
+    return JSON.parse(JSON.stringify(todo));
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Delete a subTodo
+ */
+
+export async function deleteSubTodo(todoId: Types.ObjectId, subTodoId: Types.ObjectId) {
+  try {
+    await connectToDatabase();
+
+    const todo = await Todo.findById(todoId);
+    if (!todo) throw new Error("Todo not found");
+
+    todo.subTodos = todo.subTodos.filter((sub: ISubTodo) => !sub._id.equals(subTodoId));
+    todo.hasSubTodo = todo.subTodos.length > 0;
+    await todo.save();
+
+    return JSON.parse(JSON.stringify(todo));
+  } catch (error) {
+    handleError(error);
+  }
+}
+
