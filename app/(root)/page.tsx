@@ -12,10 +12,12 @@ const Home = () => {
     { id: 2, label: "Todos", number: 2, color: "#F8DFC8", route: "/todos" },
     { id: 3, label: "Shopping List", number: 3, color: "#EEEEEE", route: "/shopping" },
     { id: 4, label: "Books List", number: 4, color: "#C8EAF8", route: "/books" },
-    { id: 5, label: "Workout Plans", number: 5, color: "#C8F8CD", route: "/workout-plans" },
+    { id: 5, label: "Important Dates", number: 5, color: "#C8F8CD", route: "/important-dates" },
     { id: 6, label: "Movies List", number: 6, color: "#F8C8C8", route: "/movies" },
     { id: 7, label: "Health", number: 7, color: "#F8EBC8", route: "/health" },
-    { id: 8, label: "Important Dates", number: 8, color: "#C8D2F8", route: "/important-dates" },
+    // { id: 8, label: "Important Dates", number: 8, color: "#C8D2F8", route: "/important-dates" },
+    { id: 8, label: "Packing List", number: 8, color: "#C8D2F8", route: "/packing" },
+
   ];
 
   const handleNavigation = (route: string) => {

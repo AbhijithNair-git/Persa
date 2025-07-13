@@ -1,170 +1,260 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Plus, Trash2, CheckSquare, Square } from "lucide-react";
 
-const categories = ["Vegie", "Baby", "Self care"];
-
-type Item = {
-  id: number;
+// Define interfaces for item and category
+interface Item {
   name: string;
   quantity: string;
-  category: string;
-};
+  checked: boolean;
+}
 
-export default function ShoppingPage() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [newItem, setNewItem] = useState({
-    name: "",
-    quantity: "",
-    category: categories[0],
+interface Category {
+  name: string;
+  items: Item[];
+}
+
+const ShoppingList: React.FC = () => {
+  const [productName, setProductName] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [quantity, setQuantity] = useState<string>("");
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (typeof window !== "undefined") {
+      const storedData = localStorage.getItem("shoppingList");
+      return storedData ? (JSON.parse(storedData) as Category[]) : [];
+    }
+    return [];
   });
 
-  const handleAddItem = () => {
-    setItems([
-      ...items,
-      {
-        id: Date.now(),
-        name: newItem.name,
-        quantity: newItem.quantity,
-        category: newItem.category,
-      },
-    ]);
-    setNewItem({ name: "", quantity: "", category: categories[0] });
-  };
+  useEffect(() => {
+    localStorage.setItem("shoppingList", JSON.stringify(categories));
+  }, [categories]);
 
-  const handleDeleteItem = (id: number) => {
-    setItems(items.filter((item) => item.id !== id));
-  };
+  const handleAddItem = useCallback((): void => {
+    if (!productName.trim() || !quantity.trim() || !selectedCategory) return;
+
+    setCategories((prevCategories: Category[]) => {
+      const updatedCategories = prevCategories.map((cat) =>
+        cat.name === selectedCategory
+          ? {
+              ...cat,
+              items: [
+                ...cat.items,
+                { name: productName, quantity, checked: false },
+              ],
+            }
+          : cat
+      );
+
+      if (!updatedCategories.some((cat) => cat.name === selectedCategory)) {
+        updatedCategories.push({
+          name: selectedCategory,
+          items: [{ name: productName, quantity, checked: false }],
+        });
+      }
+
+      return updatedCategories;
+    });
+
+    setProductName("");
+    setQuantity("");
+    setSelectedCategory("");
+    setIsDialogOpen(false);
+  }, [productName, quantity, selectedCategory]);
+
+  const handleRemoveItem = useCallback(
+    (categoryName: string, itemName: string): void => {
+      setCategories((prev: Category[]) =>
+        prev
+          .map((cat) =>
+            cat.name === categoryName
+              ? {
+                  ...cat,
+                  items: cat.items.filter((item) => item.name !== itemName),
+                }
+              : cat
+          )
+          .filter((cat) => cat.items.length > 0)
+      );
+    },
+    []
+  );
+
+  const handleClearAll = useCallback((): void => {
+    setCategories([]);
+    localStorage.removeItem("shoppingList");
+  }, []);
+
+  const toggleItemCheck = useCallback(
+    (categoryName: string, itemName: string): void => {
+      setCategories((prev: Category[]) =>
+        prev.map((cat) =>
+          cat.name === categoryName
+            ? {
+                ...cat,
+                items: cat.items.map((item) =>
+                  item.name === itemName
+                    ? { ...item, checked: !item.checked }
+                    : item
+                ),
+              }
+            : cat
+        )
+      );
+    },
+    []
+  );
+
+  const toggleCategoryCheck = useCallback((categoryName: string): void => {
+    setCategories((prev: Category[]) =>
+      prev.map((cat) =>
+        cat.name === categoryName
+          ? {
+              ...cat,
+              items: cat.items.map((item) => ({
+                ...item,
+                checked: !cat.items.every((i) => i.checked),
+              })),
+            }
+          : cat
+      )
+    );
+  }, []);
+
+  const categoryOptions: string[] = [
+    "Groceries",
+    "Household Supplies",
+    "Personal Care",
+    "Health & Wellness",
+    "Other",
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10">
-      <div className="w-full max-w-xl bg-white rounded shadow p-6">
-        <header className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">Shopping list</h1>
-          <div className="space-x-4">
-            <button
-              className="text-sm text-gray-500 hover:text-black"
-              onClick={() => setItems([])}
-            >
-              Clear all
-            </button>
-            <button
-              className="text-sm text-gray-500 hover:text-black"
-              onClick={() => window.location.reload()}
-            >
-              Reset
-            </button>
-          </div>
-        </header>
-
-        <div className="mt-6">
-          {[...new Set(items.map((item) => item.category))].map((category) => (
-            <div key={category} className="mb-6">
-              <div className="flex justify-between items-center bg-gray-200 px-4 py-2 rounded">
-                <h2 className="font-semibold">{category}</h2>
-              </div>
-              <ul className="mt-2 space-y-2">
-                {items
-                  .filter((item) => item.category === category)
-                  .map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded shadow-sm"
-                    >
-                      <span>
-                        {item.name} ({item.quantity})
-                      </span>
-                      <button
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteItem(item.id)}
-                      >
-                        🗑️
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            variant="default"
-            className="fixed bottom-6 right-6 rounded-full h-12 w-12 p-0 bg-red-600 text-white"
+    <div className="p-6 max-w-4xl mx-auto">
+      <header className="flex justify-between items-center mb-5">
+        <h1 className="text-xl font-semibold text-blue-900">Shopping List</h1>
+        {categories.length > 0 && (
+          <button
+            onClick={handleClearAll}
+            className="text-sm text-blue-950 hover:underline"
           >
+            Clear all
+          </button>
+        )}
+      </header>
+
+      {categories
+        .sort((a: Category, b: Category) => {
+          const aCompleted = a.items.every((item) => item.checked);
+          const bCompleted = b.items.every((item) => item.checked);
+          return aCompleted === bCompleted ? 0 : aCompleted ? 1 : -1;
+        })
+        .map((category: Category) => (
+          <div key={category.name} className="mb-4">
+            <h2
+              className="text-lg font-semibold bg-gray-200 p-2 rounded flex items-center gap-2 cursor-pointer"
+              onClick={() => toggleCategoryCheck(category.name)}
+            >
+              {category.items.every((item) => item.checked) ? (
+                <CheckSquare size={18} />
+              ) : (
+                <Square size={18} />
+              )}
+              {category.name}
+            </h2>
+            <ul>
+              {category.items.map((item: Item) => (
+                <li
+                  key={item.name}
+                  className="flex justify-between p-2 border-b items-center"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={item.checked}
+                      onChange={() => toggleItemCheck(category.name, item.name)}
+                      className="accent-blue-900"
+                    />
+                    <span className={item.checked ? "line-through" : ""}>
+                      {item.name} - {item.quantity}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveItem(category.name, item.name)}
+                    className="text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open: boolean) => setIsDialogOpen(open)}
+      >
+        <DialogTrigger asChild>
+          <Button className="fixed bottom-6 right-6 rounded-full h-12 w-12 bg-red-600 text-white">
             <Plus size={24} />
           </Button>
         </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Item</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Details</label>
-                <input
-                  type="text"
-                  placeholder="Product Name"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, name: e.target.value })
-                  }
-                  className="mt-1 w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Category</label>
-                <select
-                  value={newItem.category}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, category: e.target.value })
-                  }
-                  className="mt-1 w-full p-2 border rounded"
+        <DialogContent>
+          <DialogTitle>Add Item</DialogTitle>
+          <input
+            type="text"
+            placeholder="Product Name"
+            className="w-full p-2 border rounded mt-2 text-black"
+            value={productName}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setProductName(e.target.value)
+            }
+          />
+          <div className="mt-2">
+            <h3 className="font-semibold text-black">Select Category:</h3>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {categoryOptions.map((cat) => (
+                <Button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`border rounded p-2 ${
+                    selectedCategory === cat
+                      ? " text-white"
+                      : "bg-transparent text-black hover:bg-gray-200 hover:text-black"
+                  } focus:outline-none`}
+                  variant={selectedCategory === cat ? "default" : "outline"}
                 >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Quantity</label>
-                <input
-                  type="text"
-                  placeholder="Qty"
-                  value={newItem.quantity}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, quantity: e.target.value })
-                  }
-                  className="mt-1 w-full p-2 border rounded"
-                />
-              </div>
+                  {cat}
+                </Button>
+              ))}
             </div>
-            <DialogFooter>
-              <button
-                onClick={handleAddItem}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Add
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+          <input
+            type="text"
+            placeholder="Quantity"
+            className="w-full p-2 border rounded mt-2 text-black"
+            value={quantity}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setQuantity(e.target.value)
+            }
+          />
+          <Button className="w-full mt-4" onClick={handleAddItem}>
+            Add
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+};
 
+export default ShoppingList;

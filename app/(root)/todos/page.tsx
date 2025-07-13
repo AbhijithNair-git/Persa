@@ -1,5 +1,7 @@
 "use client";
+
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,48 +16,82 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import { LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { Pencil } from "lucide-react";
+import confetti from "canvas-confetti";
 
-const TasksPage = () => {
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [subtaskInput, setSubtaskInput] = useState("");
-  const [subtasks, setSubtasks] = useState<any[]>([]);
-  const [dueDate, setDueDate] = useState("");
+// Define interfaces for subtask and task
+interface Subtask {
+  _id: string;
+  title: string;
+  completed: boolean;
+}
+
+interface Task {
+  _id: string;
+  title: string;
+  subtasks: Subtask[];
+  dueDate: string;
+  dueTime: string;
+  completed: boolean;
+}
+
+const TasksPage: React.FC = () => {
+  const router = useRouter();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskTitle, setTaskTitle] = useState<string>("");
+  const [subtaskInput, setSubtaskInput] = useState<string>("");
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [dueDate, setDueDate] = useState<string>("");
   const [dueTime, setDueTime] = useState<Dayjs | null>(dayjs());
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<"all" | "completed" | "pending">("all");
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
-  const [editingTask, setEditingTask] = useState<any | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [isCongratsOpen, setIsCongratsOpen] = useState<boolean>(false);
+  const [completedTaskTitle, setCompletedTaskTitle] = useState<string>("");
+  const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState<boolean>(false);
+  const [userPlan, setUserPlan] = useState<"free" | "pro">("free");
 
   useEffect(() => {
     const storedTasks = localStorage.getItem("tasks");
     if (storedTasks) {
       try {
-        setTasks(JSON.parse(storedTasks));
+        setTasks(JSON.parse(storedTasks) as Task[]);
       } catch (error) {
         console.error("Error parsing localStorage data:", error);
-        setTasks([]); // Reset if corrupted data is found
+        setTasks([]);
       }
     }
   }, []);
 
   useEffect(() => {
     if (tasks.length > 0) {
-      // Only update if tasks exist
       localStorage.setItem("tasks", JSON.stringify(tasks));
     }
   }, [tasks]);
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const triggerConfetti = (): void => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#ff4500", "#00ff00", "#1e90ff", "#ff69b4"],
+    });
+  };
+
+  const handleAddTask = (e: React.FormEvent): void => {
     e.preventDefault();
     if (taskTitle.trim() === "" || dueDate.trim() === "" || !dueTime) return;
 
-    let updatedTasks;
+    if (userPlan === "free" && !editingTask && tasks.length >= 5) {
+      setIsUpgradeDialogOpen(true);
+      return;
+    }
+
+    let updatedTasks: Task[];
     if (editingTask) {
       updatedTasks = tasks.map((task) =>
         task._id === editingTask._id
@@ -70,7 +106,7 @@ const TasksPage = () => {
       );
       setEditingTask(null);
     } else {
-      const newTask = {
+      const newTask: Task = {
         _id: Math.random().toString(),
         title: taskTitle,
         subtasks,
@@ -82,7 +118,7 @@ const TasksPage = () => {
     }
 
     setTasks(updatedTasks);
-    localStorage.setItem("tasks", JSON.stringify(updatedTasks)); // Ensure localStorage updates immediately
+    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
 
     setTaskTitle("");
     setSubtasks([]);
@@ -92,7 +128,7 @@ const TasksPage = () => {
     setIsDialogOpen(false);
   };
 
-  const handleAddSubtask = () => {
+  const handleAddSubtask = (): void => {
     if (subtaskInput.trim() !== "") {
       setSubtasks([
         ...subtasks,
@@ -106,12 +142,19 @@ const TasksPage = () => {
     }
   };
 
+  // Type-safe handler for Select onValueChange
+  const handleFilterChange = (value: string): void => {
+    if (["all", "completed", "pending"].includes(value)) {
+      setFilter(value as "all" | "completed" | "pending");
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <div className="p-6 max-w-4xl mx-auto">
-        <header className="flex justify-between items-center mb-6">
+        <header className="flex justify-between items-center mb-5">
           <h1 className="text-xl font-semibold text-black">Your Tasks</h1>
-          <Select onValueChange={setFilter}>
+          <Select onValueChange={handleFilterChange} value={filter}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -125,13 +168,17 @@ const TasksPage = () => {
 
         {tasks
           .filter(
-            (task) =>
+            (task: Task) =>
               filter === "all" ||
               (filter === "completed" && task.completed) ||
               (filter === "pending" && !task.completed)
           )
-          .map((task) => (
-            <div key={task._id} className="bg-orange-100 p-4  mb-4">
+          .sort((a: Task, b: Task) => {
+            if (a.completed !== b.completed) return a.completed ? 1 : -1;
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          })
+          .map((task: Task) => (
+            <div key={task._id} className="bg-orange-100 p-4 mb-4">
               <div className="flex justify-between items-center">
                 <div>
                   <input
@@ -151,8 +198,13 @@ const TasksPage = () => {
                           : t
                       );
                       setTasks(updatedTasks);
+                      if (!task.completed) {
+                        triggerConfetti();
+                        setCompletedTaskTitle(task.title);
+                        setIsCongratsOpen(true);
+                      }
                     }}
-                    className=" accent-[#023467]"
+                    className="accent-[#023467]"
                   />
                   <h4
                     onClick={() =>
@@ -168,9 +220,8 @@ const TasksPage = () => {
                   >
                     {task.title}
                   </h4>
-
                   <p className="text-sm text-black">
-                    Due:{" "}
+                    Due{" "}
                     {new Date(task.dueDate)
                       .toLocaleDateString("en-GB")
                       .replace(/\//g, "-")}{" "}
@@ -187,11 +238,10 @@ const TasksPage = () => {
                       setDueTime(dayjs(task.dueTime, "hh:mm A"));
                       setIsDialogOpen(true);
                     }}
-                    className="text-grey-500"
+                    className="text-gray-500"
                   >
                     <Pencil size={18} />
                   </button>
-
                   <button
                     onClick={() => {
                       const updatedTasks = tasks.filter(
@@ -201,7 +251,7 @@ const TasksPage = () => {
                       localStorage.setItem(
                         "tasks",
                         JSON.stringify(updatedTasks)
-                      ); // Update localStorage instantly
+                      );
                     }}
                     className="text-red-500"
                   >
@@ -211,7 +261,7 @@ const TasksPage = () => {
               </div>
               {task.subtasks.length > 0 && expandedTask === task._id && (
                 <ul className="p-5">
-                  {task.subtasks.map((subtask) => (
+                  {task.subtasks.map((subtask: Subtask) => (
                     <li
                       key={subtask._id}
                       className="flex justify-between items-center"
@@ -240,11 +290,22 @@ const TasksPage = () => {
                               return t;
                             });
                             setTasks(updatedTasks);
+                            const updatedTask = updatedTasks.find(
+                              (t) => t._id === task._id
+                            );
+                            if (
+                              updatedTask?.completed &&
+                              !task.completed
+                            ) {
+                              triggerConfetti();
+                              setCompletedTaskTitle(task.title);
+                              setIsCongratsOpen(true);
+                            }
                           }}
-                          className=" accent-[#023467]"
+                          className="accent-[#023467]"
                         />
                         <span
-                          className={`ml-2 select-none  ${
+                          className={`ml-2 select-none ${
                             subtask.completed
                               ? "line-through text-gray-500"
                               : "text-black"
@@ -279,9 +340,32 @@ const TasksPage = () => {
             </div>
           ))}
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open: boolean) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setEditingTask(null);
+              setTaskTitle("");
+              setSubtasks([]);
+              setSubtaskInput("");
+              setDueDate("");
+              setDueTime(dayjs());
+            }
+          }}
+        >
           <DialogTrigger asChild>
-            <Button className="fixed bottom-6 right-6 rounded-full h-12 w-12 bg-red-600 text-white">
+            <Button
+              className="fixed bottom-6 right-6 rounded-full h-12 w-12 bg-red-600 text-white"
+              onClick={() => {
+                setEditingTask(null);
+                setTaskTitle("");
+                setSubtasks([]);
+                setSubtaskInput("");
+                setDueDate("");
+                setDueTime(dayjs());
+              }}
+            >
               <Plus size={24} />
             </Button>
           </DialogTrigger>
@@ -295,7 +379,9 @@ const TasksPage = () => {
                 placeholder="Enter task title"
                 className="w-full p-2 border rounded-md text-black"
                 value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setTaskTitle(e.target.value)
+                }
                 required
               />
               <div className="flex items-center mt-2">
@@ -304,7 +390,9 @@ const TasksPage = () => {
                   placeholder="Enter subtask"
                   className="w-full p-2 border rounded-md text-black"
                   value={subtaskInput}
-                  onChange={(e) => setSubtaskInput(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setSubtaskInput(e.target.value)
+                  }
                 />
                 <button
                   type="button"
@@ -316,7 +404,7 @@ const TasksPage = () => {
               </div>
               {subtasks.length > 0 && (
                 <ul className="mt-2 pl-4 text-black">
-                  {subtasks.map((subtask) => (
+                  {subtasks.map((subtask: Subtask) => (
                     <li
                       key={subtask._id}
                       className="flex justify-between items-center p-1 border-b"
@@ -341,28 +429,61 @@ const TasksPage = () => {
                 type="date"
                 className="w-full p-2 border rounded-md mt-2 mb-2 text-black"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setDueDate(e.target.value)
+                }
                 required
               />
               <TimePicker
                 value={dueTime}
-                onChange={setDueTime}
+                onChange={(newValue: Dayjs | null) => setDueTime(newValue)}
                 ampm={true}
                 views={["hours", "minutes"]}
-                className="w-full text-black "
+                className="w-full text-black"
               />
               <Button className="w-full mt-4" type="submit">
                 {editingTask ? "Update Task" : "Add Task"}
               </Button>
-
-              {/* <Button
-                className="w-full mt-2"
-                type="button"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancel
-              </Button> */}
             </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={isUpgradeDialogOpen}
+          onOpenChange={setIsUpgradeDialogOpen}
+        >
+          <DialogContent className="bg-orange-100">
+            <DialogTitle className="text-2xl font-bold text-orange-800">
+              Task Limit Reached
+            </DialogTitle>
+            <p className="text-lg text-black">
+              You’ve reached the maximum of 5 tasks on the free plan. Upgrade to
+              the Pro plan to add unlimited tasks!
+            </p>
+            <Button
+              className="mt-4 bg-red-600 text-white"
+              onClick={() => router.push("/purchase")}
+            >
+              View Pricing
+            </Button>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isCongratsOpen} onOpenChange={setIsCongratsOpen}>
+          <DialogContent className="bg-orange-100">
+            <DialogTitle className="text-2xl font-bold text-orange-800">
+              Congratulations!
+            </DialogTitle>
+            <p className="text-lg text-black">
+              You’ve completed the task: <strong>{completedTaskTitle}</strong>!
+              Great job!
+            </p>
+            <Button
+              className="mt-4 bg-red-600 text-white"
+              onClick={() => setIsCongratsOpen(false)}
+            >
+              Close
+            </Button>
           </DialogContent>
         </Dialog>
       </div>
