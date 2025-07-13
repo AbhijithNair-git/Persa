@@ -2,23 +2,23 @@ import { getTaskById, updateTask, deleteTask } from "@/lib/actions/task.actions"
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-  try {
-    if (!Types.ObjectId.isValid(params.id)) {
-      return new NextResponse("Invalid task ID", { status: 400 });
-    }
+// export async function GET(req: Request, { params }: { params: { id: string } }) {
+//   try {
+//     if (!Types.ObjectId.isValid(params.id)) {
+//       return new NextResponse("Invalid task ID", { status: 400 });
+//     }
 
-    const task = await getTaskById(new Types.ObjectId(params.id));
-    if (!task) {
-      return new NextResponse("Task not found", { status: 404 });
-    }
+//     const task = await getTaskById(new Types.ObjectId(params.id));
+//     if (!task) {
+//       return new NextResponse("Task not found", { status: 404 });
+//     }
 
-    return NextResponse.json(task);
-  } catch (error) {
-    console.error(`Error fetching task with ID ${params.id}:`, error);
-    return new NextResponse("Error fetching task", { status: 500 });
-  }
-}
+//     return NextResponse.json(task);
+//   } catch (error) {
+//     console.error(`Error fetching task with ID ${params.id}:`, error);
+//     return new NextResponse("Error fetching task", { status: 500 });
+//   }
+// }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
