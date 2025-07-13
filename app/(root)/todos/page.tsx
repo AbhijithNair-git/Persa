@@ -53,7 +53,8 @@ const TasksPage: React.FC = () => {
   const [isCongratsOpen, setIsCongratsOpen] = useState<boolean>(false);
   const [completedTaskTitle, setCompletedTaskTitle] = useState<string>("");
   const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState<boolean>(false);
-  const [userPlan, setUserPlan] = useState<"free" | "pro">("free");
+  const [userPlan,] = useState<"free" | "pro">("free");
+  // const [userPlan, setUserPlan] = useState<"free" | "pro">("free");
 
   useEffect(() => {
     const storedTasks = localStorage.getItem("tasks");

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from 'next/font/google';
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 
 import "./globals.css";
